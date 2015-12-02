@@ -17,9 +17,17 @@
         <form id="search_series">
 			<img src="images/search.png" width="20" height="20"/>
 			<br>
-			<input id="search_series_query" type="text" name="query" placeholder="Ex:breaking bad" size="25" autofocus>
+			<input id="search_series_query" type="text" name="query" placeholder="Ex:breaking bad" size="29" autofocus>
 			<br>
 		</form>
+		<div id="navigation_buttons">
+			<table id="navigation_buttons_table">
+				<tr>
+					<td><input type="button" id="bt_next_episode" value="Try next episode"/></td>
+					<td><input type="button" id="bt_next_season" value="Try next season"/></td>
+				</tr>
+			</table>
+		</div>
 		<table id="search_results" border="1"/>
 		<div id="alert_div" style="color:red"/>
     </body>
