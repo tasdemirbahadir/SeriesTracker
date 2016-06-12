@@ -3,15 +3,21 @@
  */
 var alertEmptyQuery = "Your search key is empty!";
 var alertNoResult = "No result for the search!";
+var alertNextPartUnAvailable = "Url is not suitable for navigation";
 var oneYear = 1000 * 60 * 60 * 24 * 365;
 var maxResults = 5;
 var sleepTime = 1000;
 var threadCounter = 0;
 var alertDiv;
 var searchResultsTable;
-var seriesUrl = /^(.+)(\d+)(.+)(\d+)(.*)$/g;
+var regexBundle = [
+	/^([^\d]+)(\d+)([^\d]+)(\d+)([^\d]+)$/g,
+	/^([^\d]+)(\d+)([^\d]+)(\d+)([^\d]+)(\d+)([^\d]*)$/g
+];
 var navTypeSeason = 0;
 var navTypeEpisode = 1;
+var navTypeSeasonPrev = 2;
+var navTypeEpisodePrev = 3;
 $( document ).ready(function() {
 	alertDiv = $("#alert_div");
 	searchResultsTable = $("#search_results");
@@ -21,11 +27,18 @@ $( document ).ready(function() {
 	$("#search_series_query").on("input", function(e){
 		searchOnHistory(null, false);
 	});
+	//Buttons
 	$("#bt_next_episode").on("click", function(e){
 		navigationOnClick(e, navTypeEpisode);
 	});
 	$("#bt_next_season").on("click", function(e){
 		navigationOnClick(e, navTypeSeason);
+	});
+	$("#bt_prev_episode").on("click", function(e){
+		navigationOnClick(e, navTypeEpisodePrev);
+	});
+	$("#bt_prev_season").on("click", function(e){
+		navigationOnClick(e, navTypeSeasonPrev);
 	});
 });
 
@@ -33,29 +46,47 @@ function navigationOnClick(e, navType) {
 	if (e != null) {
 		e.preventDefault();
 	}
+	alertDiv.html("");
 	chrome.tabs.getSelected(null,function(tab) {
 		var url = tab.url;
-		var match = seriesUrl.exec(url);
-		if (match) {
-			//(.+)(\d+)(.+)(\d+)(.*)
-			if (match.length >= 5) {
-				var seasonNumber = parseInt(match[2]);
-				var episodeNumber = parseInt(match[4]);
-				if (navType == navTypeSeason) {
-					seasonNumber++;
-					episodeNumber = 1;
-				} else if (navType == navTypeEpisode) {
-					episodeNumber++;
+		for (var i = 0; i < regexBundle.length; i++) {
+			if (regexBundle[i].test(url)) {
+				regexBundle[i].lastIndex = 0;
+				var match = regexBundle[i].exec(url);
+				if (match) {
+					//(.+)(\d+)(.+)(\d+)(.*)
+					if (match.length >= 5) {
+						var seasonNumber = parseInt(match[2]);
+						var episodeNumber = parseInt(match[4]);
+						if (navType == navTypeSeason) {
+							seasonNumber++;
+							episodeNumber = 1;
+						} else if (navType == navTypeEpisode) {
+							episodeNumber++;
+						} else if (navType == navTypeSeasonPrev) {
+							seasonNumber--;
+						} else if (navType == navTypeEpisodePrev) {
+							episodeNumber--;
+						}
+						var toUrl = match[1] + seasonNumber + match[3] + episodeNumber;
+						if (match.length > 5) {
+							toUrl += match[5];
+						}
+						if (match.length > 6) {
+							toUrl += match[6];
+						}
+						if (match.length > 7) {
+							toUrl += match[7];
+						}
+						chrome.tabs.update(tab.id, {url: toUrl});
+					}
+				} else {
+					alertDiv.html(alertNextPartUnAvailable);
 				}
-				var toUrl = match[1] + seasonNumber + match[3] + episodeNumber;
-				if (match.length > 5) {
-					toUrl += match[5];
-				}
-				chrome.tabs.update(tab.id, {url: toUrl});
+				return;
 			}
-		} else {
-			alert("Url is not suitable for navigation");
 		}
+		alertDiv.html(alertNextPartUnAvailable);
 	});
 }
 
