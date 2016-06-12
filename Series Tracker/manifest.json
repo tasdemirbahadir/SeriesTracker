@@ -3,7 +3,7 @@
 
   "name": "Series Tracker",
   "description": "This extension lets you to get last episode of a series you watched by searching among the history.",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "permissions": [
     "history",
 	"tabs"
