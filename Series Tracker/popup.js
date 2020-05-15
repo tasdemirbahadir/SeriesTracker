@@ -10,10 +10,6 @@ var sleepTime = 1000;
 var threadCounter = 0;
 var alertDiv;
 var searchResultsTable;
-var regexBundle = [
-	/^([^\d]+)(\d+)([^\d]+)(\d+)([^\d]+)$/g,
-	/^([^\d]+)(\d+)([^\d]+)(\d+)([^\d]+)(\d+)([^\d]*)$/g
-];
 var navTypeSeason = 0;
 var navTypeEpisode = 1;
 var navTypeSeasonPrev = 2;
@@ -49,44 +45,52 @@ function navigationOnClick(e, navType) {
 	alertDiv.html("");
 	chrome.tabs.getSelected(null,function(tab) {
 		var url = tab.url;
-		for (var i = 0; i < regexBundle.length; i++) {
-			if (regexBundle[i].test(url)) {
-				regexBundle[i].lastIndex = 0;
-				var match = regexBundle[i].exec(url);
-				if (match) {
-					//(.+)(\d+)(.+)(\d+)(.*)
-					if (match.length >= 5) {
-						var seasonNumber = parseInt(match[2]);
-						var episodeNumber = parseInt(match[4]);
-						if (navType == navTypeSeason) {
-							seasonNumber++;
-							episodeNumber = 1;
-						} else if (navType == navTypeEpisode) {
-							episodeNumber++;
-						} else if (navType == navTypeSeasonPrev) {
-							seasonNumber--;
-						} else if (navType == navTypeEpisodePrev) {
-							episodeNumber--;
-						}
-						var toUrl = match[1] + seasonNumber + match[3] + episodeNumber;
-						if (match.length > 5) {
-							toUrl += match[5];
-						}
-						if (match.length > 6) {
-							toUrl += match[6];
-						}
-						if (match.length > 7) {
-							toUrl += match[7];
-						}
-						chrome.tabs.update(tab.id, {url: toUrl});
-					}
-				} else {
-					alertDiv.html(alertNextPartUnAvailable);
-				}
+
+		var patternSeasonEpisode = /^([^\d]+)(\d+)([^\d]+)(\d+)(.*)$/g;
+		var paternOnlyEpisode = /^([^\d]+)(\d+)(.*)$/g;
+
+		if (patternSeasonEpisode.test(url)) {
+			patternSeasonEpisode.lastIndex = 0;
+
+			var match = patternSeasonEpisode.exec(url);
+			var seasonNumber = parseInt(match[2]);
+			var episodeNumber = parseInt(match[4]);
+
+			if (navType == navTypeSeason) {
+				seasonNumber++;
+				episodeNumber = 1;
+			} else if (navType == navTypeSeasonPrev) {
+				seasonNumber--;
+			} else if (navType == navTypeEpisode) {
+				episodeNumber++;
+			} else if (navType == navTypeEpisodePrev) {
+				episodeNumber--;
+			}
+
+			var toUrl = match[1] + seasonNumber + match[3] + episodeNumber + match[5];
+			chrome.tabs.update(tab.id, {url: toUrl});
+
+		} else if (paternOnlyEpisode.test(url)) {
+			if (navType == navTypeSeason || navType == navTypeSeasonPrev) {
+				alertDiv.html(alertNextPartUnAvailable);
 				return;
 			}
+			paternOnlyEpisode.lastIndex = 0;
+
+			var match = paternOnlyEpisode.exec(url);
+			var episodeNumber = parseInt(match[2]);
+
+			if (navType == navTypeEpisode) {
+				episodeNumber++;
+			} else if (navType == navTypeEpisodePrev) {
+				episodeNumber--;
+			}
+
+			var toUrl = match[1] + episodeNumber + match[3];
+			chrome.tabs.update(tab.id, {url: toUrl});
+		} else {
+			alertDiv.html(alertNextPartUnAvailable);
 		}
-		alertDiv.html(alertNextPartUnAvailable);
 	});
 }
 
